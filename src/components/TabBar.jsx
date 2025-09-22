@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
-import Icon from 'react-native-vector-icons/MaterialIcons';
+import { Image } from 'react-native';
 
 const { width } = Dimensions.get('window');
 
@@ -12,12 +12,30 @@ const ICONS = {
   Favoritos: 'favorite',
 };
 
+const ICON_IMAGES = {
+  Home: require('../assets/icone.png'),
+  Mao: require('../assets/mao.png'),
+  Pet: require('../assets/pet.png'),
+  Veterinario: require('../assets/veterinario.png'),
+  Pessoa: require('../assets/pessoa.png'),
+};
+
+const TAB_ORDER = [
+  { name: 'Home', image: ICON_IMAGES.Home },
+  { name: 'Mao', image: ICON_IMAGES.Mao },
+  { name: 'Pet', image: ICON_IMAGES.Pet },
+  { name: 'Veterinario', image: ICON_IMAGES.Veterinario },
+  { name: 'Pessoa', image: ICON_IMAGES.Pessoa },
+];
+
 export default function TabBar({ state, descriptors, navigation }) {
   return (
     <View style={styles.container}>
-      {state.routes.map((route, index) => {
+      {TAB_ORDER.map((tab, index) => {
+        const route = state.routes.find(r => r.name === tab.name);
+        if (!route) return null;
         const { options } = descriptors[route.key];
-        const isFocused = state.index === index;
+        const isFocused = state.index === state.routes.findIndex(r => r.name === tab.name);
 
         const onPress = () => {
           const event = navigation.emit({
@@ -31,8 +49,6 @@ export default function TabBar({ state, descriptors, navigation }) {
           }
         };
 
-        const iconName = ICONS[route.name] || 'help';
-
         return (
           <TouchableOpacity
             key={route.key}
@@ -41,7 +57,7 @@ export default function TabBar({ state, descriptors, navigation }) {
             onPress={onPress}
             style={styles.tabItem}
           >
-            <Icon name={iconName} size={28} color={isFocused ? '#A367F0' : '#C49DF6'} />
+            <Image source={tab.image} style={{ width: 28, height: 28, tintColor: isFocused ? '#A367F0' : '#C49DF6' }} />
           </TouchableOpacity>
         );
       })}

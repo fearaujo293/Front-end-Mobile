@@ -9,37 +9,36 @@ import {
   Alert
 } from 'react-native';
 
-const ReviewScreen = ({ navigation }) => {
-  // Dados mockados - serão substituídos pelo estado global posteriormente
-  const appointmentData = {
-    pet: {
-      name: 'Luna',
-      image: 'https://images.unsplash.com/photo-1560809453-57b495cce980?w=100&h=100&fit=crop&crop=face'
-    },
-    specialty: 'Consulta Geral',
-    vet: {
-      name: 'Dra. Ana Silva',
-      specialty: 'Clínica Geral',
-      image: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=80&h=80&fit=crop&crop=face'
-    },
-    date: '18/09/2025',
-    time: '11:30',
-    reason: 'Vacina anual e check-up de rotina',
-    observations: ['Vacinação', 'Check-up']
-  };
+const ReviewScreen = ({ navigation, route }) => {
+  // Recebe dados via navegação
+  const {
+    pet = { name: 'Luna', image: 'https://images.unsplash.com/photo-1560809453-57b495cce980?w=100&h=100&fit=crop&crop=face' },
+    specialty = 'Consulta Geral',
+    vet = { name: 'Dra. Ana Silva', specialty: 'Clínica Geral', image: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=80&h=80&fit=crop&crop=face' },
+    date,
+    time,
+    reason = 'Vacina anual e check-up de rotina',
+    observations = ['Vacinação', 'Check-up']
+  } = route?.params || {};
 
-  const handleConfirmAppointment = () => {
+  const formattedDate = date instanceof Date ? date.toLocaleDateString('pt-BR') : date;
+  const formattedTime = time instanceof Date ? time.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : time;
+
+  // Garante compatibilidade quando o veterinário possui a propriedade `photo` em vez de `image`
+   const vetImageSource = vet.image || vet.photo || 'https://via.placeholder.com/80';
+   const petImageSource = pet.image || pet.photo || 'https://via.placeholder.com/100';
+   
+   const handleConfirmAppointment = () => {
     // Simulação de envio para API
     console.log('Dados do agendamento:', {
-      petId: '123',
-      vetId: '456',
-      specialty: appointmentData.specialty,
-      date: '2025-09-18',
-      time: '11:30',
-      reason: appointmentData.reason
+      petId: pet.id,
+      vetId: vet.id,
+      specialty,
+      date: formattedDate,
+      time: formattedTime,
+      reason
     });
 
-    // Simulação de sucesso
     Alert.alert(
       'Sucesso',
       'Consulta agendada com sucesso!',
@@ -50,9 +49,6 @@ const ReviewScreen = ({ navigation }) => {
         }
       ]
     );
-
-    // Em caso de erro (comentado para referência futura):
-    // Alert.alert('Erro', 'Erro ao agendar consulta');
   };
 
   return (
@@ -68,13 +64,13 @@ const ReviewScreen = ({ navigation }) => {
           {/* Informações do Pet */}
           <View style={styles.petSection}>
             <Image
-              source={{ uri: appointmentData.pet.image }}
+              source={{ uri: petImageSource }}
               style={styles.petImage}
               resizeMode="cover"
             />
             <View style={styles.petInfo}>
-              <Text style={styles.petName}>{appointmentData.pet.name}</Text>
-              <Text style={styles.specialty}>{appointmentData.specialty}</Text>
+              <Text style={styles.petName}>{pet.name}</Text>
+              <Text style={styles.specialty}>{specialty}</Text>
             </View>
           </View>
 
@@ -83,13 +79,13 @@ const ReviewScreen = ({ navigation }) => {
             <Text style={styles.sectionTitle}>Veterinário</Text>
             <View style={styles.vetInfoRow}>
               <Image
-                source={{ uri: appointmentData.vet.image }}
+                source={{ uri: vetImageSource }}
                 style={styles.vetImage}
                 resizeMode="cover"
               />
               <View style={styles.vetDetails}>
-                <Text style={styles.vetName}>{appointmentData.vet.name}</Text>
-                <Text style={styles.vetSpecialty}>{appointmentData.vet.specialty}</Text>
+                <Text style={styles.vetName}>{vet.name}</Text>
+                <Text style={styles.vetSpecialty}>{vet.specialty}</Text>
               </View>
             </View>
           </View>
@@ -97,29 +93,26 @@ const ReviewScreen = ({ navigation }) => {
           {/* Informações Adicionais */}
           <View style={styles.infoSection}>
             <Text style={styles.sectionTitle}>Informações da Consulta</Text>
-            
             <View style={styles.infoRow}>
               <Text style={styles.infoLabel}>Data:</Text>
-              <Text style={styles.infoValue}>{appointmentData.date}</Text>
+              <Text style={styles.infoValue}>{formattedDate}</Text>
             </View>
-            
             <View style={styles.infoRow}>
               <Text style={styles.infoLabel}>Hora:</Text>
-              <Text style={styles.infoValue}>{appointmentData.time}</Text>
+              <Text style={styles.infoValue}>{formattedTime}</Text>
             </View>
-            
             <View style={styles.infoRow}>
               <Text style={styles.infoLabel}>Motivo:</Text>
-              <Text style={styles.infoValue}>{appointmentData.reason}</Text>
+              <Text style={styles.infoValue}>{reason}</Text>
             </View>
           </View>
 
           {/* Observações (Chips) */}
-          {appointmentData.observations && appointmentData.observations.length > 0 && (
+          {observations && observations.length > 0 && (
             <View style={styles.observationsSection}>
               <Text style={styles.sectionTitle}>Observações</Text>
               <View style={styles.chipsContainer}>
-                {appointmentData.observations.map((obs, index) => (
+                {observations.map((obs, index) => (
                   <View key={index} style={styles.chip}>
                     <Text style={styles.chipText}>{obs}</Text>
                   </View>

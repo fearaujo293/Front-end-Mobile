@@ -9,8 +9,7 @@ import {
   FlatList,
   Alert
 } from 'react-native';
-
-const SelectVetScreen = ({ navigation }) => {
+const SelectVetScreen = ({ navigation, route }) => {
   const [selectedVetId, setSelectedVetId] = useState(null);
 
   // Dados mockados de veterinários - serão substituídos pela API posteriormente
@@ -70,8 +69,10 @@ const SelectVetScreen = ({ navigation }) => {
     }
 
     // Salvar selectedVetId no estado global (será implementado com Redux/Context)
+    const formData = route?.params?.appointmentData || {};
+    const selectedVet = veterinarians.find(v => v.id === selectedVetId);
     console.log('Veterinário selecionado:', selectedVetId);
-    navigation.navigate('ReviewScreen');
+    navigation.navigate('ReviewScreen', { ...formData, vet: selectedVet });
   };
 
   const renderVetCard = ({ item }) => (

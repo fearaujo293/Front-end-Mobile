@@ -144,26 +144,6 @@ function MainTabs() {
       />
 
       <Tab.Screen
-        name="Pets"
-        component={HomeTabStack}
-        options={{
-          tabBarIcon: ({ color, size }) => (
-            <Image
-              source={iconePet}
-              style={{
-                width: size,
-                height: size,
-                tintColor: color,
-              }}
-              resizeMode="contain"
-            />
-          ),
-        }}
-      />
-
-
-
-      <Tab.Screen
         name="AddPet"
         component={AddPetTabStack}
         options={{
@@ -182,12 +162,12 @@ function MainTabs() {
       />
 
       <Tab.Screen
-        name="Favorites"
-        component={FavoritesTabStack}
+        name="Pets"
+        component={HomeTabStack}
         options={{
           tabBarIcon: ({ color, size }) => (
             <Image
-              source={iconePessoa}
+              source={iconePet}
               style={{
                 width: size,
                 height: size,
@@ -253,6 +233,24 @@ function MainTabs() {
           </Stack.Navigator>
         )}
       </Tab.Screen>
+
+      <Tab.Screen
+        name="Favorites"
+        component={FavoritesTabStack}
+        options={{
+          tabBarIcon: ({ color, size }) => (
+            <Image
+              source={iconePessoa}
+              style={{
+                width: size,
+                height: size,
+                tintColor: color,
+              }}
+              resizeMode="contain"
+            />
+          ),
+        }}
+      />
     </Tab.Navigator>
   );
 }
@@ -265,5 +263,3 @@ export default function App() {
     </NavigationContainer>
   );
 }
-// App.jsx
-// Este arquivo configura a navegação principal do aplicativo, incluindo as abas e stacks necessárias.

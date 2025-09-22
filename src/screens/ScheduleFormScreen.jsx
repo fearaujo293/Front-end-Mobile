@@ -66,7 +66,16 @@ const ScheduleFormScreen = ({ navigation }) => {
   const handleNext = () => {
     if (validateForm()) {
       console.log('Dados do formulário:', formData);
-      navigation.navigate('SelectVetScreen');
+      const petMap = {
+        luna: { id: '1', name: 'Luna', image: 'https://images.unsplash.com/photo-1560809453-57b495cce980?w=100&h=100&fit=crop&crop=face' },
+        thor: { id: '2', name: 'Thor', image: 'https://images.unsplash.com/photo-1525253086316-d0c936c814f8?w=100&h=100&fit=crop&crop=face' },
+        bella: { id: '3', name: 'Bella', image: 'https://images.unsplash.com/photo-1507149833265-60c372daea22?w=100&h=100&fit=crop&crop=face' }
+      };
+      const appointmentData = {
+        ...formData,
+        pet: petMap[formData.pet] || { id: 'unknown', name: formData.pet, image: 'https://via.placeholder.com/100' }
+      };
+      navigation.navigate('SelectVetScreen', { appointmentData });
     }
   };
 
