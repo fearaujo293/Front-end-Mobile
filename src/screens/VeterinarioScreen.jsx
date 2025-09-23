@@ -110,6 +110,10 @@ const ConsultasScreen = ({ navigation }) => {
     );
   };
 
+  const handleAgendarConsulta = () => {
+    navigation.navigate('Agendamento');
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.tabContainer}>
@@ -135,7 +139,7 @@ const ConsultasScreen = ({ navigation }) => {
 
       <ScrollView style={styles.contentContainer}>{renderContent()}</ScrollView>
 
-      <TouchableOpacity style={styles.scheduleButton} onPress={() => navigation.navigate('ScheduleFormScreen')}>
+      <TouchableOpacity style={styles.scheduleButton} onPress={() => navigation.navigate('Agendamento')}>
         <Text style={styles.scheduleButtonText}>Agendar Consulta</Text>
       </TouchableOpacity>
     </View>

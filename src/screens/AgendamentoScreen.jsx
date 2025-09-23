@@ -1,343 +1,488 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, TouchableOpacity, Alert, Image, ScrollView } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import React, { useState, useCallback, useMemo } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Platform,
+  ScrollView,
+  Alert,
+} from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { TimeOptionCard } from '../components/TimeOptionCard';
+import { Calendar, LocaleConfig } from 'react-native-calendars';
 import { LinearGradient } from 'expo-linear-gradient';
-import Icon from 'react-native-vector-icons/MaterialIcons';
-import { Calendar } from 'react-native-calendars';
+import { useNavigation } from '@react-navigation/native';
 
-const pets = [
-  { id: 1, nome: 'Rex', tipo: 'Cachorro', idade: '5 anos', foto: require('../assets/dog1.png') },
-  { id: 2, nome: 'Miau', tipo: 'Gato', idade: '2 anos', foto: require('../assets/cat1.png') },
-];
-
-const servicos = [
-  { id: 1, nome: 'Consulta', icone: 'healing' },
-  { id: 2, nome: 'Vacina', icone: 'colorize' },
-  { id: 3, nome: 'Banho & Tosa', icone: 'content-cut' },
-  { id: 4, nome: 'Exames', icone: 'science' },
-];
-
-const horarios = ['09:00', '10:00', '11:00', '14:00', '15:00', '16:00'];
-const horariosOcupados = ['11:00', '15:00'];
+// Configuração de localização para português
+LocaleConfig.locales['pt-br'] = {
+  monthNames: [
+    'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+    'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+  ],
+  monthNamesShort: [
+    'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun',
+    'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'
+  ],
+  dayNames: [
+    'Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'
+  ],
+  dayNamesShort: ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'],
+  today: 'Hoje'
+};
+LocaleConfig.defaultLocale = 'pt-br';
 
 export default function AgendamentoScreen() {
   const navigation = useNavigation();
-  const [selectedPet, setSelectedPet] = useState(null);
-  const [selectedService, setSelectedService] = useState(null);
   const [selectedDate, setSelectedDate] = useState('');
   const [selectedTime, setSelectedTime] = useState(null);
+  const [showTimePicker, setShowTimePicker] = useState(false);
+  const [selectedTimeOption, setSelectedTimeOption] = useState(null);
+  const [showTimeSelection, setShowTimeSelection] = useState(false);
+
+  // Horários disponíveis para agendamento
+  const timeOptions = useMemo(() => [
+    '08:00',
+    '09:00',
+    '10:00',
+    '11:00',
+    '13:00',
+    '14:00',
+    '15:00',
+    '16:00',
+  ], []);
+
+  // Handler para mudança de data
+  const handleDateChange = useCallback((day) => {
+    setSelectedDate(day.dateString);
+    // Mostra a seleção de horário após selecionar a data
+    setShowTimeSelection(true);
+    // Limpa a seleção de horário anterior ao mudar a data
+    setSelectedTimeOption(null);
+    setSelectedTime(null);
+  }, []);
+
+  // Handler para mudança de horário via DateTimePicker
+  const handleTimeChange = useCallback((event, newTime) => {
+    setShowTimePicker(Platform.OS === 'ios');
+    if (newTime) {
+      setSelectedTime(newTime);
+      const formattedTime = formatTime(newTime);
+      setSelectedTimeOption(formattedTime);
+    }
+  }, []);
+
+  // Handler para seleção de horário via cards
+  const handleTimeOptionSelect = useCallback((time) => {
+    setSelectedTimeOption(time);
+    const [hours, minutes] = time.split(':').map(Number);
+    const newDate = new Date();
+    newDate.setHours(hours, minutes, 0, 0);
+    setSelectedTime(newDate);
+  }, []);
+
+  // Formatar tempo para exibição
+  const formatTime = useCallback((date) => {
+    return date.toLocaleTimeString('pt-BR', { 
+      hour: '2-digit', 
+      minute: '2-digit' 
+    });
+  }, []);
+
+  // Mostrar picker de tempo
+  const showPicker = useCallback(() => {
+    setShowTimePicker(true);
+  }, []);
+
+  // Validar e confirmar agendamento
+  const handleConfirmSchedule = useCallback(() => {
+    // Validação detalhada
+    if (!selectedDate) {
+      Alert.alert(
+        'Data não selecionada',
+        'Por favor, selecione uma data no calendário antes de continuar.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
+    if (!selectedTimeOption || !selectedTime) {
+      Alert.alert(
+        'Horário não selecionado',
+        'Por favor, selecione um horário disponível antes de continuar.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
+    // Validar se a data não está no passado
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const scheduledDate = new Date(selectedDate + 'T00:00:00');
+    
+    if (scheduledDate < today) {
+      Alert.alert(
+        'Data inválida',
+        'Não é possível agendar em datas passadas. Por favor, selecione uma data futura.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
+    // Se hoje, validar se o horário não passou
+    if (scheduledDate.toDateString() === today.toDateString()) {
+      const now = new Date();
+      const [hours, minutes] = selectedTimeOption.split(':').map(Number);
+      const scheduledTime = new Date();
+      scheduledTime.setHours(hours, minutes, 0, 0);
+      
+      if (scheduledTime <= now) {
+        Alert.alert(
+          'Horário inválido',
+          'O horário selecionado já passou. Por favor, escolha um horário futuro.',
+          [{ text: 'OK' }]
+        );
+        return;
+      }
+    }
+
+    // Se todas as validações passaram, navegar para o formulário
+    navigation.navigate('ScheduleFormScreen', {
+      date: selectedDate,
+      time: selectedTimeOption,
+      fullDateTime: `${selectedDate} ${selectedTimeOption}`,
+    });
+  }, [selectedDate, selectedTimeOption, selectedTime, navigation]);
+
+  // Configuração do tema do calendário
+  const calendarTheme = useMemo(() => ({
+    backgroundColor: '#EBE4F4',
+    calendarBackground: '#FFFFFF',
+    textSectionTitleColor: '#A367F0',
+    selectedDayBackgroundColor: '#A367F0',
+    selectedDayTextColor: '#FFFFFF',
+    todayTextColor: '#A367F0',
+    dayTextColor: '#333333',
+    textDisabledColor: '#C49DF6',
+    dotColor: '#A367F0',
+    selectedDotColor: '#FFFFFF',
+    arrowColor: '#A367F0',
+    monthTextColor: '#A367F0',
+    indicatorColor: 'blue',
+    textDayFontWeight: '300',
+    textMonthFontWeight: 'bold',
+    textDayHeaderFontWeight: '300',
+    textDayFontSize: 16,
+    textMonthFontSize: 16,
+    textDayHeaderFontSize: 14,
+  }), []);
+
+  // Datas marcadas no calendário
+  const markedDates = useMemo(() => ({
+    [selectedDate]: { 
+      selected: true, 
+      selectedColor: '#A367F0',
+      selectedTextColor: '#FFFFFF',
+    },
+  }), [selectedDate]);
+
+  // Obter data mínima (hoje)
+  const getMinDate = () => {
+    const today = new Date();
+    return today.toISOString().split('T')[0];
+  };
+
+  // Obter data máxima (3 meses no futuro)
+  const getMaxDate = () => {
+    const maxDate = new Date();
+    maxDate.setMonth(maxDate.getMonth() + 3);
+    return maxDate.toISOString().split('T')[0];
+  };
 
   return (
-    <View style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContainer}>
-        <Text style={styles.sectionTitle}>Seleção de Pet</Text>
-        <View style={styles.petSelectionContainer}>
-          {pets.map(pet => (
-            <TouchableOpacity 
-              key={pet.id} 
-              style={[styles.petCard, selectedPet === pet.id && styles.petCardSelected]} 
-              onPress={() => setSelectedPet(pet.id)}
-            >
-              <Image source={pet.foto} style={styles.petPhoto} />
-              <View>
-                <Text style={styles.petName}>{pet.nome}</Text>
-                <Text style={styles.petDetails}>{pet.tipo} - {pet.idade}</Text>
-              </View>
-            </TouchableOpacity>
-          ))}
-        </View>
+    <ScrollView 
+      contentContainerStyle={styles.scrollContainer}
+      showsVerticalScrollIndicator={false}
+    >
+      <View style={styles.container}>
+        <Text style={styles.title}>Agendamento de Consulta</Text>
         
-        <Text style={styles.sectionTitle}>Seleção de Serviço</Text>
-        <View style={styles.serviceSelectionContainer}>
-          {servicos.map(servico => (
-            <TouchableOpacity
-              key={servico.id}
-              style={[
-                styles.serviceButton,
-                selectedService === servico.id && styles.serviceButtonSelected,
-              ]}
-              onPress={() => setSelectedService(servico.id)}
-            >
-              <Icon name={servico.icone} size={24} color={selectedService === servico.id ? '#FFFFFF' : '#C49DF6'} />
-              <Text style={[styles.serviceButtonText, selectedService === servico.id && styles.serviceButtonTextSelected]}>
-                {servico.nome}
-              </Text>
-            </TouchableOpacity>
-          ))}
+        {/* Instruções */}
+        <View style={styles.instructionsContainer}>
+          <Text style={styles.instructionsText}>
+            📅 Selecione primeiro a data desejada
+          </Text>
+          {selectedDate && (
+            <Text style={styles.instructionsText}>
+              ⏰ Agora escolha um horário disponível
+            </Text>
+          )}
         </View>
 
-        <Text style={styles.sectionTitle}>Calendário</Text>
-        <Calendar
-          onDayPress={(day) => setSelectedDate(day.dateString)}
-          markedDates={{
-            [selectedDate]: { selected: true, selectedColor: '#A367F0' },
-          }}
-          theme={{
-            backgroundColor: '#EBE4F4',
-            calendarBackground: '#FFFFFF',
-            textSectionTitleColor: '#A367F0',
-            selectedDayBackgroundColor: '#A367F0',
-            selectedDayTextColor: '#FFFFFF',
-            todayTextColor: '#A367F0',
-            dayTextColor: '#A367F0',
-            textDisabledColor: '#C49DF6',
-            dotColor: '#A367F0',
-            selectedDotColor: '#FFFFFF',
-            arrowColor: '#A367F0',
-            monthTextColor: '#A367F0',
-            indicatorColor: 'blue',
-            textDayFontWeight: '300',
-            textMonthFontWeight: 'bold',
-            textDayHeaderFontWeight: '300',
-            textDayFontSize: 16,
-            textMonthFontSize: 16,
-            textDayHeaderFontSize: 16,
-          }}
-          style={styles.calendar}
-        />
+        {/* Seção de Seleção de Data */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>1. Selecione a Data</Text>
+          <Calendar
+            onDayPress={handleDateChange}
+            markedDates={markedDates}
+            theme={calendarTheme}
+            style={styles.calendar}
+            minDate={getMinDate()}
+            maxDate={getMaxDate()}
+            enableSwipeMonths
+            firstDay={1}
+            showWeekNumbers={false}
+            hideExtraDays={true}
+            disableAllTouchEventsForDisabledDays={true}
+          />
+        </View>
 
-        <Text style={styles.sectionTitle}>Horários</Text>
-        <View style={styles.timeSelectionContainer}>
-          {horarios.map(horario => {
-            const isOcupado = horariosOcupados.includes(horario);
-            return (
-              <TouchableOpacity
-                key={horario}
-                style={[
-                  styles.timeButton,
-                  selectedTime === horario && styles.timeButtonSelected,
-                  isOcupado && styles.timeButtonOccupied,
-                ]}
-                onPress={() => !isOcupado && setSelectedTime(horario)}
-                disabled={isOcupado}
+        {/* Seção de Seleção de Horário - Só aparece após selecionar data */}
+        {showTimeSelection && selectedDate && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>2. Selecione o Horário</Text>
+            
+            <View style={styles.timeOptionsContainer}>
+              {timeOptions.map((time) => (
+                <TimeOptionCard
+                  key={time}
+                  time={time}
+                  isSelected={selectedTimeOption === time}
+                  onSelect={handleTimeOptionSelect}
+                />
+              ))}
+            </View>
+
+            {/* Opção adicional para iOS com DateTimePicker nativo */}
+            {Platform.OS === 'ios' && (
+              <TouchableOpacity 
+                onPress={showPicker} 
+                style={styles.iosTimeButton}
+                activeOpacity={0.7}
               >
-                <Text
-                  style={[
-                    styles.timeButtonText,
-                    selectedTime === horario && styles.timeButtonTextSelected,
-                    isOcupado && styles.timeButtonTextOccupied,
-                  ]}
-                >
-                  {horario}
+                <Text style={styles.iosTimeButtonText}>
+                  Usar seletor de hora nativo (iOS)
                 </Text>
               </TouchableOpacity>
-            );
-          })}
-        </View>
+            )}
 
-        <Text style={styles.sectionTitle}>Observações</Text>
-        <TextInput
-          style={styles.detailsInput}
-          placeholder="Detalhes adicionais"
-          placeholderTextColor="#C49DF6"
-          multiline
-        />
-
-        {selectedPet && selectedService && selectedDate && selectedTime && (
-          <>
-            <Text style={styles.sectionTitle}>Resumo da consulta</Text>
-            <View style={styles.summaryContainer}>
-              <View style={styles.summaryRow}>
-                <Text style={styles.summaryTitle}>Pet:</Text>
-                <Text style={styles.summaryInfo}>{pets.find(p => p.id === selectedPet)?.nome}</Text>
-              </View>
-              <View style={styles.summaryRow}>
-                <Text style={styles.summaryTitle}>Serviço:</Text>
-                <Text style={styles.summaryInfo}>{servicos.find(s => s.id === selectedService)?.nome}</Text>
-              </View>
-              <View style={styles.summaryRow}>
-                <Text style={styles.summaryTitle}>Data:</Text>
-                <Text style={styles.summaryInfo}>{selectedDate}</Text>
-              </View>
-              <View style={styles.summaryRow}>
-                <Text style={styles.summaryTitle}>Horário:</Text>
-                <Text style={styles.summaryInfo}>{selectedTime}</Text>
-              </View>
-            </View>
-          </>
+            {/* DateTimePicker nativo */}
+            {showTimePicker && (
+              <DateTimePicker
+                value={selectedTime || new Date()}
+                mode="time"
+                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                onChange={handleTimeChange}
+                is24Hour={true}
+              />
+            )}
+          </View>
         )}
 
-        <TouchableOpacity style={styles.confirmButton}>
+        {/* Resumo da seleção */}
+        {(selectedDate || selectedTimeOption) && (
+          <View style={styles.summarySection}>
+            <Text style={styles.summaryTitle}>Resumo do Agendamento:</Text>
+            {selectedDate && (
+              <Text style={styles.summaryText}>
+                📅 Data: {new Date(selectedDate + 'T12:00:00').toLocaleDateString('pt-BR', {
+                  weekday: 'long',
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric'
+                })}
+              </Text>
+            )}
+            {selectedTimeOption && (
+              <Text style={styles.summaryText}>
+                ⏰ Horário: {selectedTimeOption}
+              </Text>
+            )}
+            {!selectedDate && (
+              <Text style={styles.warningText}>
+                ⚠️ Selecione uma data
+              </Text>
+            )}
+            {selectedDate && !selectedTimeOption && (
+              <Text style={styles.warningText}>
+                ⚠️ Selecione um horário
+              </Text>
+            )}
+          </View>
+        )}
+
+        {/* Botão de Confirmação - Sempre visível mas com estados diferentes */}
+        <TouchableOpacity
+          style={[
+            styles.confirmButton,
+            (!selectedDate || !selectedTimeOption) && styles.disabledButton
+          ]}
+          onPress={handleConfirmSchedule}
+          activeOpacity={0.8}
+          disabled={!selectedDate || !selectedTimeOption}
+        >
           <LinearGradient
-            colors={['#A367F0', '#8D7EFB']}
+            colors={
+              selectedDate && selectedTimeOption 
+                ? ['#A367F0', '#8D7EFB'] 
+                : ['#D3D3D3', '#B0B0B0']
+            }
             style={styles.buttonGradient}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
           >
-            <Text style={styles.buttonText}>Confirmar Agendamento</Text>
+            <Text style={[
+              styles.confirmButtonText,
+              (!selectedDate || !selectedTimeOption) && styles.disabledButtonText
+            ]}>
+              {!selectedDate 
+                ? 'Selecione uma Data' 
+                : !selectedTimeOption 
+                ? 'Selecione um Horário' 
+                : 'Confirmar Agendamento'}
+            </Text>
           </LinearGradient>
         </TouchableOpacity>
-      </ScrollView>
-    </View>
+      </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
+  scrollContainer: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 20,
+    backgroundColor: '#F5F5F5',
+  },
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
-  },
-  scrollContainer: {
+    width: '100%',
+    maxWidth: 500,
     padding: 20,
-    paddingTop: 50,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 15,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 5,
+    margin: 10,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#A367F0',
+    marginBottom: 20,
+    textAlign: 'center',
+    letterSpacing: 0.5,
+  },
+  instructionsContainer: {
+    backgroundColor: '#F8F4FF',
+    padding: 15,
+    borderRadius: 10,
+    marginBottom: 20,
+    borderLeftWidth: 4,
+    borderLeftColor: '#A367F0',
+  },
+  instructionsText: {
+    fontSize: 14,
+    color: '#666',
+    marginVertical: 2,
+  },
+  section: {
+    marginBottom: 25,
+    width: '100%',
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
-    color: '#A367F0',
-    marginTop: 20,
-    marginBottom: 10,
-  },
-  petSelectionContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginBottom: 20,
-  },
-  petCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 8,
-    padding: 15,
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: 'transparent',
-    width: '48%',
-  },
-  petCardSelected: {
-    borderColor: '#A367F0',
-  },
-  petPhoto: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    borderWidth: 2,
-    borderColor: '#C79DFD',
-    marginBottom: 10,
-  },
-  petName: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#A367F0',
-    textAlign: 'center',
-  },
-  petDetails: {
-    fontSize: 14,
     color: '#8D7EFB',
+    marginBottom: 15,
     textAlign: 'center',
+    letterSpacing: 0.3,
   },
-  serviceSelectionContainer: {
+  timeOptionsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    marginBottom: 20,
-  },
-  serviceButton: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 8,
-    padding: 15,
-    alignItems: 'center',
-    width: '48%',
-    marginBottom: 10,
-    flexDirection: 'row',
     justifyContent: 'center',
-  },
-  serviceButtonSelected: {
-    backgroundColor: '#A367F0',
-  },
-  serviceButtonText: {
-    color: '#8D7EFB',
-    marginLeft: 10,
-    fontWeight: 'bold',
-  },
-  serviceButtonTextSelected: {
-    color: '#FFFFFF',
-  },
-  calendar: {
-    borderRadius: 8,
     marginBottom: 20,
+    gap: 10,
   },
-  timeSelectionContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    marginBottom: 20,
-  },
-  timeButton: {
-    backgroundColor: '#FFFFFF',
+  iosTimeButton: {
+    backgroundColor: '#F0E6FF',
+    padding: 12,
     borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#C79DFD',
-    paddingVertical: 10,
-    paddingHorizontal: 15,
-    width: '30%',
     alignItems: 'center',
-    marginBottom: 10,
-  },
-  timeButtonSelected: {
-    backgroundColor: '#A367F0',
+    marginTop: 10,
+    borderWidth: 1,
     borderColor: '#A367F0',
   },
-  timeButtonOccupied: {
-    backgroundColor: '#FFFFFF',
-    borderColor: '#EBE4F4',
+  iosTimeButtonText: {
+    color: '#A367F0',
+    fontWeight: '600',
+    fontSize: 14,
   },
-  timeButtonText: {
-    color: '#8D7EFB',
-    fontWeight: 'bold',
-  },
-  timeButtonTextSelected: {
-    color: '#FFFFFF',
-  },
-  timeButtonTextOccupied: {
-    color: '#C49DF6',
-  },
-  detailsInput: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#C79DFD',
+  summarySection: {
+    backgroundColor: '#F8F4FF',
     padding: 15,
-    fontSize: 16,
-    color: '#8D7EFB',
-    minHeight: 100,
-    textAlignVertical: 'top',
-  },
-  summaryContainer: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#C79DFD',
-    padding: 20,
+    borderRadius: 10,
     marginBottom: 20,
-  },
-  summaryRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 10,
+    borderLeftWidth: 4,
+    borderLeftColor: '#A367F0',
   },
   summaryTitle: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#A367F0',
+    color: '#6A0DAD',
+    marginBottom: 10,
   },
-  summaryInfo: {
-    fontSize: 16,
-    color: '#8D7EFB',
+  summaryText: {
+    fontSize: 15,
+    color: '#333',
+    marginVertical: 5,
+    paddingLeft: 10,
+  },
+  warningText: {
+    fontSize: 14,
+    color: '#FF6B6B',
+    marginVertical: 5,
+    paddingLeft: 10,
+    fontStyle: 'italic',
   },
   confirmButton: {
-    marginTop: 30,
-    borderRadius: 8,
-    shadowColor: 'rgba(163, 103, 240, 0.3)',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 1,
-    shadowRadius: 10,
-    elevation: 8,
+    borderRadius: 10,
+    overflow: 'hidden',
+    marginTop: 10,
+  },
+  disabledButton: {
+    opacity: 0.6,
   },
   buttonGradient: {
-    padding: 15,
+    padding: 18,
     alignItems: 'center',
-    borderRadius: 8,
   },
-  buttonText: {
+  confirmButtonText: {
     color: '#FFFFFF',
-    fontSize: 16,
     fontWeight: 'bold',
+    fontSize: 18,
+    letterSpacing: 0.5,
+  },
+  disabledButtonText: {
+    color: '#F5F5F5',
+  },
+  calendar: {
+    borderRadius: 10,
+    marginBottom: 20,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#C79DFD',
+    overflow: 'hidden',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
   },
 });

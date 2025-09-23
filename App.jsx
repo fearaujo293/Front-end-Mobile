@@ -65,11 +65,7 @@ function PetsStack() {
         component={AdicionarPetScreen}
         options={{ title: 'Adicionar Pet' }}
       />
-      <Stack.Screen
-        name="Agendamento"
-        component={AgendamentoScreen}
-        options={{ title: 'Agendar Consulta' }}
-      />
+      {/* Removido AgendamentoScreen daqui */}
       <Stack.Screen
         name="PetDetails"
         component={PetsScreen}
@@ -90,7 +86,7 @@ function HomeTabStack() {
 function AddPetTabStack() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="AddPetTab" component={AddPetScreen} options={{ title: 'Agendar Consulta' }} />
+      <Stack.Screen name="AddPetTab" component={AdicionarPetScreen} options={{ title: 'Agendar Consulta' }} />
     </Stack.Navigator>
   );
 }
@@ -198,22 +194,22 @@ function MainTabs() {
         {() => (
           <Stack.Navigator
             screenOptions={newHeaderOptions}
+            initialRouteName="Consultas" // Explicitly set initial route
           >
             <Stack.Screen
               name="Consultas"
               component={ConsultasScreen}
-              options={{ title: 'Consultas Veterinárias' }}
+              options={{ title: 'Minhas Consultas' }}
             />
             <Stack.Screen
-              name="DetalhesConsulta"
-              component={DetalhesConsultaScreen}
-              options={{ title: 'Detalhes da Consulta' }}
+              name="Agendamento"
+              component={AgendamentoScreen}
+              options={{ title: 'Agendar Consulta' }}
             />
-            {/* Novas telas do fluxo de agendamento */}
             <Stack.Screen
               name="ScheduleFormScreen"
               component={ScheduleFormScreen}
-              options={{ title: 'Agendar Consulta' }}
+              options={{ title: 'Detalhes do Agendamento' }}
             />
             <Stack.Screen
               name="SelectVetScreen"
@@ -223,12 +219,17 @@ function MainTabs() {
             <Stack.Screen
               name="ReviewScreen"
               component={ReviewScreen}
-              options={{ title: 'Resumo da Consulta' }}
+              options={{ title: 'Revisar Agendamento' }}
             />
             <Stack.Screen
               name="SuccessScreen"
               component={SuccessScreen}
-              options={{ title: 'Consulta Agendada' }}
+              options={{ title: 'Agendamento Concluído' }}
+            />
+            <Stack.Screen
+              name="DetalhesConsulta"
+              component={DetalhesConsultaScreen}
+              options={{ title: 'Detalhes da Consulta' }}
             />
           </Stack.Navigator>
         )}

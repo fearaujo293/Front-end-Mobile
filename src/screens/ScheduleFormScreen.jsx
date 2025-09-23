@@ -12,14 +12,20 @@ import {
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Picker } from '@react-native-picker/picker';
 
-const ScheduleFormScreen = ({ navigation }) => {
+const ScheduleFormScreen = ({ navigation, route }) => {
+  // Renomeando para evitar conflito com a variável de estado 'date'
+  const { petId, serviceId, date: paramDate, time: paramTime } = route.params || {};
+
   const [formData, setFormData] = useState({
-    pet: '',
-    specialty: '',
-    date: new Date(),
-    time: new Date(),
+    pet: petId || '',
+    specialty: serviceId || '',
+    date: paramDate ? new Date(paramDate) : new Date(),
+    time: paramTime && paramDate ? new Date(`${paramDate}T${paramTime}`) : new Date(),
     reason: ''
   });
+
+  console.log('formData.date after initialization:', formData.date);
+  console.log('formData.time after initialization:', formData.time);
 
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
@@ -39,6 +45,41 @@ const ScheduleFormScreen = ({ navigation }) => {
     { label: 'Dermatologia', value: 'dermatologia' },
     { label: 'Oftalmologia', value: 'oftalmologia' }
   ];
+
+  // IMPORTANTE: Ao atualizar a data ou hora, combine-as
+  const handleDateChange = (event, selectedDate) => {
+    setShowDatePicker(false);
+    if (selectedDate) {
+      // Pega a nova data e mantém a hora que já estava no estado 'time'
+      const newDateTime = new Date(selectedDate);
+      const currentTime = new Date(formData.time);
+      newDateTime.setHours(currentTime.getHours());
+      newDateTime.setMinutes(currentTime.getMinutes());
+      
+      setFormData(prev => ({
+        ...prev,
+        date: newDateTime,
+        time: newDateTime
+      }));
+    }
+  };
+
+  const handleTimeChange = (event, selectedTime) => {
+    setShowTimePicker(false);
+    if (selectedTime) {
+      // Pega a nova hora e mantém a data que já estava no estado 'date'
+      const newDateTime = new Date(formData.date);
+      const newTime = new Date(selectedTime);
+      newDateTime.setHours(newTime.getHours());
+      newDateTime.setMinutes(newTime.getMinutes());
+
+      setFormData(prev => ({
+        ...prev,
+        date: newDateTime,
+        time: newDateTime
+      }));
+    }
+  };
 
   const handleInputChange = (field, value) => {
     setFormData(prev => ({
@@ -149,7 +190,7 @@ const ScheduleFormScreen = ({ navigation }) => {
           {/* Seletor de Data */}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Data</Text>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.dateTimeButton}
               onPress={() => setShowDatePicker(true)}
             >
@@ -160,10 +201,7 @@ const ScheduleFormScreen = ({ navigation }) => {
                 value={formData.date}
                 mode="date"
                 display="default"
-                onChange={(event, selectedDate) => {
-                  setShowDatePicker(false);
-                  if (selectedDate) handleInputChange('date', selectedDate);
-                }}
+                onChange={handleDateChange}
               />
             )}
           </View>
@@ -171,7 +209,7 @@ const ScheduleFormScreen = ({ navigation }) => {
           {/* Seletor de Hora */}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Hora</Text>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.dateTimeButton}
               onPress={() => setShowTimePicker(true)}
             >
@@ -182,10 +220,7 @@ const ScheduleFormScreen = ({ navigation }) => {
                 value={formData.time}
                 mode="time"
                 display="default"
-                onChange={(event, selectedTime) => {
-                  setShowTimePicker(false);
-                  if (selectedTime) handleInputChange('time', selectedTime);
-                }}
+                onChange={handleTimeChange}
               />
             )}
           </View>
